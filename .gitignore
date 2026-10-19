@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+data/
+.env
+.idea/
+.vscode/
+.gradio/

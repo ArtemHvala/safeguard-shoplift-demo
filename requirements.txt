@@ -1,0 +1,16 @@
+# UI
+streamlit            # облачная версия (Streamlit Community Cloud)
+gradio                # локальная версия с живым потоком
+
+# детекция объектов
+ultralytics
+lap                  # нужен ByteTrack при model.track()
+
+# лица: ВЫБРАТЬ ОДИН
+facenet-pytorch      # рекоменд.: чистый pytorch, ставится на Windows без сборки
+# onnxruntime        # только если пойдём через insightface
+
+# видео/картинки
+opencv-python-headless   # без GUI-зависимостей (серверный хостинг)
+numpy>=2.1,<3   # 1.x не имеет колёс под Python 3.13 и лезет собираться из исходников
+pillow

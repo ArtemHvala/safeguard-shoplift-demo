@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: safeguard-shoplift
+    runtime: python
+    plan: free
+    # веса качаем на этапе сборки — при старте сервис не тратит время и трафик
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')" &&
+      python -c "from facenet_pytorch import InceptionResnetV1; InceptionResnetV1(pretrained='vggface2')"
+    startCommand: python app.py
+    autoDeploy: true
+    envVars:
+      - key: GRADIO_ANALYTICS_ENABLED
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.13.7"
