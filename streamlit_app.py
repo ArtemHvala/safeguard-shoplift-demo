@@ -1,7 +1,9 @@
 """Streamlit-версия демо с ЖИВЫМ потоком с камеры (WebRTC).
 
-Камера стримит в браузере, каждый кадр уходит в общий pipeline,
-разметка возвращается в поток. Рассчитано на Streamlit Community Cloud.
+Две «камеры» — один поток в двух режимах (переключаются радио-кнопкой).
+Считаем время от первого появления человека в режиме 1 до появления в режиме 2.
+
+Рассчитано на Streamlit Community Cloud.
 """
 import av
 import cv2
@@ -50,8 +52,16 @@ st.caption(
     "Живой поток с камеры: детекция товара в руках и распознавание человека."
 )
 
+# ---------- две «камеры»: один поток в двух режимах ----------
+mode_label = st.radio(
+    "Режим камеры",
+    ["Камера 1 (вход)", "Камера 2 (зал)"],
+    index=pipeline.get_mode() - 1,
+    horizontal=True,
+)
+pipeline.set_mode(1 if mode_label.startswith("Камера 1") else 2)
+
 # STUN «знакомит» напрямую, TURN ретранслирует трафик — нужен, если сеть/VPN режет UDP.
-# TCP/TLS на 443 проходит почти везде.
 RTC_CONFIGURATION = {
     "iceServers": [
         {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
@@ -77,3 +87,27 @@ webrtc_streamer(
         "audio": False,
     },
 )
+
+# ---------- таблица времён ----------
+st.subheader("Время появления")
+rows = pipeline.timeline_data()
+headers = pipeline.timeline_headers()
+if rows:
+    st.markdown(
+        "\n".join(
+            [
+                "| " + " | ".join(headers) + " |",
+                "|" + "|".join(["---"] * len(headers)) + "|",
+                *(
+                    "| " + " | ".join(str(cell) for cell in row) + " |"
+                    for row in rows
+                ),
+            ]
+        )
+    )
+else:
+    st.caption("Пока никого не видели.")
+
+if st.button("Обновить таблицу / Сбросить время", type="secondary"):
+    pipeline.reset_timeline()
+    st.rerun()
