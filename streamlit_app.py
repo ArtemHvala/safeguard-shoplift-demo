@@ -42,9 +42,30 @@ st.caption(
     "Живой поток с камеры: детекция товара в руках и распознавание человека."
 )
 
+# STUN «знакомит» напрямую, TURN ретранслирует трафик — нужен, если сеть/VPN режет UDP.
+# TCP/TLS на 443 проходит почти везде.
+RTC_CONFIGURATION = {
+    "iceServers": [
+        {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
+        {"urls": ["stun:global.stun.twilio.com:3478"]},
+        {
+            "urls": [
+                "turn:openrelay.metered.ca:80",
+                "turn:openrelay.metered.ca:443",
+                "turns:openrelay.metered.ca:443?transport=tcp",
+            ],
+            "username": "openrelayproject",
+            "credential": "openrelayproject",
+        },
+    ]
+}
+
 webrtc_streamer(
     key="shoplift",
     video_processor_factory=ShopliftProcessor,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-    media_stream_constraints={"video": True, "audio": False},
+    rtc_configuration=RTC_CONFIGURATION,
+    media_stream_constraints={
+        "video": {"width": 640, "height": 480},
+        "audio": False,
+    },
 )
