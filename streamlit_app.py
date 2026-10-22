@@ -25,16 +25,24 @@ with st.spinner("Загружаю модели…"):
     _boot()
 
 
+PROCESS_EVERY = 3  # обрабатывать каждый N-й кадр (экономия CPU); промежуточные — последний результат
+
+
 class ShopliftProcessor(VideoProcessorBase):
-    """Обрабатывает каждый кадр из WebRTC-потока."""
+    """Обрабатывает кадры из WebRTC-потока (с пропуском для экономии CPU)."""
+
+    def __init__(self):
+        self._n = 0
+        self._last = None
 
     def recv(self, frame):
         bgr = frame.to_ndarray(format="bgr24")
-        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-        out = pipeline.process_frame(rgb)
-        return av.VideoFrame.from_ndarray(
-            cv2.cvtColor(out, cv2.COLOR_RGB2BGR), format="bgr24"
-        )
+        self._n += 1
+        if self._last is None or self._n % PROCESS_EVERY == 0:
+            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+            out = pipeline.process_frame(rgb)
+            self._last = cv2.cvtColor(out, cv2.COLOR_RGB2BGR)
+        return av.VideoFrame.from_ndarray(self._last, format="bgr24")
 
 
 st.title("🛡️ Safeguard Shoplift Demo")
