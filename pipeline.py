@@ -59,8 +59,12 @@ def _detect_people(frame_rgb):
     return people
 
 
-def process_frame(frame_rgb):
-    """RGB numpy -> размеченный RGB numpy."""
+def process_frame(frame_rgb, force_faces=False):
+    """RGB numpy -> размеченный RGB numpy.
+
+    force_faces=True — считать лица на каждом кадре (режим «снимок»,
+    где кэш между кадрами бессмыслен).
+    """
     global _frame_no
     if frame_rgb is None:
         return None
@@ -68,7 +72,8 @@ def process_frame(frame_rgb):
     bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
     products = p["track_products"](bgr)
     _frame_no += 1
-    people = _detect_people(frame_rgb) if (_frame_no % FACE_EVERY == 1) else _last_people
+    need_faces = force_faces or (_frame_no % FACE_EVERY == 1)
+    people = _detect_people(frame_rgb) if need_faces else _last_people
     img = p["annotate"](bgr, p["link"](people, products))
     img = p["draw_people"](img, people)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

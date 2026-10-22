@@ -1,5 +1,6 @@
 # UI
 streamlit            # облачная версия (Streamlit Community Cloud)
+streamlit-webrtc     # живой поток с камеры (WebRTC)
 gradio                # локальная версия с живым потоком
 
 # детекция объектов

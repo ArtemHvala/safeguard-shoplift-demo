@@ -1,11 +1,12 @@
-"""Streamlit-версия демо: снимок с камеры -> разметка.
+"""Streamlit-версия демо с ЖИВЫМ потоком с камеры (WebRTC).
 
-Рассчитана на Streamlit Community Cloud (1 ГБ памяти, бесплатно, без карты).
-Запуск: streamlit run streamlit_app.py
+Камера стримит в браузере, каждый кадр уходит в общий pipeline,
+разметка возвращается в поток. Рассчитано на Streamlit Community Cloud.
 """
-import numpy as np
+import av
+import cv2
 import streamlit as st
-from PIL import Image
+from streamlit_webrtc import VideoProcessorBase, webrtc_streamer
 
 import pipeline
 
@@ -14,29 +15,36 @@ st.set_page_config(page_title="Safeguard Shoplift Demo", layout="wide")
 
 @st.cache_resource
 def _boot():
+    """БД + модели грузим ДО старта потока, иначе первые кадры «висят»."""
     pipeline.init()
-    pipeline._get_pipeline()  # прогрев моделей один раз на процесс
+    pipeline._get_pipeline()
     return True
 
 
 with st.spinner("Загружаю модели…"):
     _boot()
 
+
+class ShopliftProcessor(VideoProcessorBase):
+    """Обрабатывает каждый кадр из WebRTC-потока."""
+
+    def recv(self, frame):
+        bgr = frame.to_ndarray(format="bgr24")
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        out = pipeline.process_frame(rgb)
+        return av.VideoFrame.from_ndarray(
+            cv2.cvtColor(out, cv2.COLOR_RGB2BGR), format="bgr24"
+        )
+
+
 st.title("🛡️ Safeguard Shoplift Demo")
 st.caption(
-    "Распознавание человека и товара в руках. "
-    "Снимите кадр — покажем разметку."
+    "Живой поток с камеры: детекция товара в руках и распознавание человека."
 )
 
-photo = st.camera_input("Снимите кадр")
-
-if photo is not None:
-    frame = np.array(Image.open(photo).convert("RGB"))
-    with st.spinner("Обрабатываю кадр…"):
-        result = pipeline.process_frame(frame)
-    st.image(result, caption="Результат")
-    people = pipeline.last_people()
-    if people:
-        st.write("**Люди в кадре:**")
-        for person in people:
-            st.write(f"- {person['name']}")
+webrtc_streamer(
+    key="shoplift",
+    video_processor_factory=ShopliftProcessor,
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+    media_stream_constraints={"video": True, "audio": False},
+)
